@@ -1,9 +1,9 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { APP_SECRET } = require('../../utils');
+const { APP_SECRET, getUserId } = require('../../utils');
 
 function post(parent, { url, description }, context, info) {
-  const userID = getUserId(context);
+  const userId = getUserId(context);
   return context.db.mutation.createLink({ data: { url, description, postedBy: { connect: { id: userId } } } }, info);
 }
 
@@ -38,6 +38,28 @@ async function login(parent, args, context, info) {
     token,
     user
   };
+}
+
+async function vote(parent, args, context, info) {
+  const userId = getUserId(context);
+  const { linkId } = args;
+  const linkExists = await context.db.exists.Vote({
+    user: { id: userId },
+    link: { id: linkId }
+  });
+  if (linkExists) {
+    throw new Error(`Already voted for link: ${linkId}`);
+  }
+
+  return context.db.mutation.createVote(
+    {
+      data: {
+        user: { connect: { id: userId } },
+        link: { connect: { id: linkId } }
+      }
+    },
+    info
+  );
 }
 
 module.exports = {
