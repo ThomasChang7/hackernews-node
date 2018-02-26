@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { APP_SECRET, getUserId } = require('../../utils');
 
@@ -65,5 +65,6 @@ async function vote(parent, args, context, info) {
 module.exports = {
   post,
   signup,
-  login
+  login,
+  vote
 };
