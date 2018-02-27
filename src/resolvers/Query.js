@@ -1,8 +1,16 @@
-function feed(parent, args, context, info) {
-  const { filter, first, skip } = args;
+async function feed(parent, args, ctx, info) {
+  const { filter, first, skip } = args; // destructure input arguments
   const where = filter ? { OR: [{ url_contains: filter }, { description_contains: filter }] } : {};
 
-  return context.db.query.links({ first, skip, where }, info);
+  const allLinks = await ctx.db.query.links({});
+  const count = allLinks.length;
+
+  const queriedLinkes = await ctx.db.query.links({ first, skip, where });
+
+  return {
+    linkIds: queriedLinkes.map(link => link.id),
+    count
+  };
 }
 
 module.exports = {

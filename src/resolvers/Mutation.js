@@ -1,15 +1,15 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { APP_SECRET, getUserId } = require('../../utils');
+const { APP_SECRET, getUserId } = require('../utils');
 
-function post(parent, { url, description }, context, info) {
-  const userId = getUserId(context);
-  return context.db.mutation.createLink({ data: { url, description, postedBy: { connect: { id: userId } } } }, info);
+function post(parent, { url, description }, ctx, info) {
+  const userId = getUserId(ctx);
+  return ctx.db.mutation.createLink({ data: { url, description, postedBy: { connect: { id: userId } } } }, info);
 }
 
-async function signup(parent, args, context, info) {
+async function signup(parent, args, ctx, info) {
   const password = await bcrypt.hash(args.password, 10);
-  const user = await context.db.mutation.createUser({
+  const user = await ctx.db.mutation.createUser({
     data: { ...args, password }
   });
 
@@ -21,10 +21,10 @@ async function signup(parent, args, context, info) {
   };
 }
 
-async function login(parent, args, context, info) {
-  const user = await context.db.query.user({ where: { email: args.email } });
+async function login(parent, args, ctx, info) {
+  const user = await ctx.db.query.user({ where: { email: args.email } });
   if (!user) {
-    throw new Error(`Could not find user with email: ${args.email}`);
+    throw new Error('No such user found');
   }
 
   const valid = await bcrypt.compare(args.password, user.password);
@@ -32,18 +32,16 @@ async function login(parent, args, context, info) {
     throw new Error('Invalid password');
   }
 
-  const token = jwt.sign({ userId: user.id }, APP_SECRET);
-
   return {
-    token,
+    token: jwt.sign({ userId: user.id }, APP_SECRET),
     user
   };
 }
 
-async function vote(parent, args, context, info) {
-  const userId = getUserId(context);
+async function vote(parent, args, ctx, info) {
   const { linkId } = args;
-  const linkExists = await context.db.exists.Vote({
+  const userId = getUserId(ctx);
+  const linkExists = await ctx.db.exists.Vote({
     user: { id: userId },
     link: { id: linkId }
   });
@@ -51,7 +49,7 @@ async function vote(parent, args, context, info) {
     throw new Error(`Already voted for link: ${linkId}`);
   }
 
-  return context.db.mutation.createVote(
+  return ctx.db.mutation.createVote(
     {
       data: {
         user: { connect: { id: userId } },
